@@ -1,0 +1,269 @@
+# Generate Daily Report
+
+This template is used internally by `/adj:daily` and `/adj:all` commands.
+
+**IMPORTANT - 言語設定**:
+- すべての応答・出力は日本語で行うこと
+- Think in English, but generate responses in Japanese
+- 日報の内容、エラーメッセージ、すべて日本語で記述する
+
+## Task
+
+Generate a daily report for the specified date (YYYY-MM-DD format).
+
+### 0. Record Start Time
+
+**処理開始時刻を記録**:
+```bash
+start_time=$(date +%s)
+```
+
+### 1. Load All Session Files
+
+**CRITICAL - スクリプト作成の禁止**:
+- `/tmp`へのPython/Bashスクリプト作成は禁止
+- Read/Grep/Bashツールを直接使用すること
+- 理由:
+  - トークン消費: Write tool使用で約250トークン/スクリプト
+  - 処理時間増加: スクリプト作成・デバッグで10-15秒無駄
+  - 品質低下: 即興スクリプトは不完全で低品質な出力を生成
+
+**効率的な手順**:
+
+1. プロジェクトディレクトリを特定:
+   ```bash
+   ls ~/.claude/projects/ | grep "$(basename $(pwd))"
+   ```
+
+2. 対象日のセッションファイルを絞り込み:
+   ```bash
+   grep -l "YYYY-MM-DD" ~/.claude/projects/{PROJECT_DIR}/*.jsonl
+   ```
+
+3. 該当ファイル（最大3件まで）をReadツールで読み込む
+   - timestampフィールドで日付を確認
+   - tool_useイベントからEdit/Writeの履歴を抽出
+   - userメッセージとassistantメッセージから作業内容を理解
+
+**処理時間目安**: 3-5秒
+
+**Note**: Each `.jsonl` file is a session. Parse line-by-line as JSON objects.
+
+### 2. Analyze All Sessions
+
+**禁止事項 - ショートカットの防止**:
+- ❌ Git履歴のみから日報を生成してはならない
+- ❌ コミットメッセージを箇条書きに丸写ししてはならない
+- ❌ セッションファイルの解析をスキップしてはならない
+- ✅ 必ずセッションファイルを読み込み、実際の作業内容を分析すること
+- ✅ ツール使用履歴（Edit/Write）から変更されたファイルを把握すること
+
+For each session, extract:
+
+**A. Implemented Features**
+- What was built/modified
+- Which files were changed (from tool_use events: Edit, Write, etc.)
+- Key implementation approaches
+
+**B. Challenges & Solutions**
+- Errors encountered (look for error keywords in messages)
+- Trial-and-error patterns (multiple edits to same file)
+- How issues were resolved
+
+**C. Important Decisions**
+- Design choices made
+- Technical discussions
+
+### 3. Get Commit History
+
+Run:
+```bash
+git log --since="YYYY-MM-DD 00:00:00" --until="YYYY-MM-DD 23:59:59" --pretty=format:"%h %s"
+```
+
+### 4. Check if Report is Needed
+
+**IMPORTANT**: セッションもコミットも存在しない場合:
+- ファイルを作成しない
+- **処理を終了（メッセージ出力なし）**
+
+### 5. Generate Complete Daily Report
+
+**IMPORTANT**: セッション全体を通して見て、以下を判断すること:
+- 最初に言及された機能が後で保留/廃止になっていないか
+- 同じ問題に対して複数のアプローチを試していないか
+- 方針転換や設計変更が行われていないか
+
+**Structure**:
+```markdown
+# 作業報告 - YYYY-MM-DD
+
+## [簡潔なタイトル1]
+- 具体的な作業内容（本質的なもののみ、2-4個程度）
+- **ハマり Lv.X (解決済み/未解決)**: 課題の詳細
+  - **発見 Lv.X**: 技術的な発見（ある場合のみ）
+- **決定**: 重要な技術的・設計的決定
+
+## [簡潔なタイトル2]
+- ...
+
+# 高価値の発見 (Lv.4-5)
+- **[発見の内容]**: 関連するハマり・セッションへの参照
+- **[発見の内容]**: 関連するハマり・セッションへの参照
+
+# コミット履歴
+- `hash` メッセージ
+- `hash` メッセージ
+```
+
+**Requirements**:
+- **セクションタイトル**: 技術的な実装内容や作業内容を表す具体的なタイトルをつける（例: 「認証システムのJWT移行」「パフォーマンス最適化」）。「ファイル変更」「修正」「更新作業」のような曖昧なタイトルは禁止
+- **箇条書きは本質的なもののみ**: 変更ファイル名、細かな修正は書かない
+- **理由を明確に**: 作業をした理由や決定の背景が見えるように
+- **ハマりレベル**: 難易度を Lv.1-5 で表現（1=軽微、5=深刻）。状態も明記（解決済み/未解決）
+- **発見とレベル判定**:
+  - Claude Code や Web の表面的な知見では解決できなかった、テックブログで発信価値のある技術的な発見のみ記載
+  - 各発見には **Web検索による独自性** を評価し、Lv.1-5を付与:
+    - **Lv.1**: 一般的（Web上に類似情報が多数、価値は限定的）
+    - **Lv.2**: やや有用（一部で役立つ情報）
+    - **Lv.3**: 有用（実践的価値あり）
+    - **Lv.4**: 高価値（発信価値あり、Web上に類似情報が少ない）
+    - **Lv.5**: 非常に高価値（非常に独自性が高い）
+  - Web検索手順:
+    1. 発見のキーワードを抽出（技術名、エラーメッセージ、解決手法など）
+    2. WebSearch ツールで検索（例: "Claude Code Slash Commands API不要"）
+    3. 検索結果の内容と発見を比較し、類似度・情報量を評価して独自性レベルを判定
+- **高価値発見のサマリー**:
+  - 発見レベル（独自性）が Lv.4-5 と判定された発見は「# 高価値の発見 (Lv.4-5)」セクションにも追加
+  - このセクションは発見が1つ以上ある場合のみ作成（なければセクション自体を省略）
+  - 各項目には関連する「ハマり」セクションやセッションへの参照を含める
+- **決定**: 技術選定、大きな方針転換、大きな設計変更のみ記載
+- **セッション全体を見る**: 後で保留になった機能には「決定: 機能を一旦保留」などを明記
+- **簡潔に**: 類似作業は統合し、冗長な箇条書きを避ける
+- **太字（`**`）の使用制限**: 「ハマり Lv.X (解決済み/未解決)」「発見 Lv.X」「決定」の3つのみ太字にする。それ以外は通常テキストで記載
+- **ファイル変更の記載**: 大量のファイル削除・追加がある場合は、個別のファイル名を羅列せず、「なぜ、何を、どうした」を簡潔に要約する（例: 「TypeScript関連ファイル20個を削除してプロジェクトをシンプル化」）
+
+### 6. Write Report
+
+**IMPORTANT - ファイル書き込みに関する重要な注意**:
+- `~/Documents/nipposan/{project-name}/` への書き込みはユーザーに事前に通知済み（README.mdのセキュリティとプライバシーセクション参照）
+- この範囲内でのファイル書き込みにユーザーへの確認は不要
+- Write/Edit ツールを直接実行すること
+- 処理完了後の確認メッセージも不要（出力しない）
+
+**ファイル名の決定**:
+- 対象日付と今日の日付を比較:
+  - 対象日付 = 今日 → ファイル名に `[DRAFT]` プレフィックスを付与
+  - 対象日付 < 今日 → プレフィックスなし（確定版）
+- ファイル名例:
+  - 暫定版: `[DRAFT]2025-11-06.md`
+  - 確定版: `2025-11-06.md`
+
+**処理時間の計算と日報の完成**:
+
+1. 処理時間を計算:
+```bash
+end_time=$(date +%s)
+elapsed=$((end_time - start_time))
+```
+
+2. 日報コンテンツの末尾に処理時間を追加:
+```markdown
+---
+*処理時間: ${elapsed}s*
+```
+**注意**: 小数点以下は不要。整数値（秒単位）で記録すること。
+
+3. 完成した日報コンテンツ（処理時間を含む）を一度に書き込む
+
+**ファイル出力**:
+- Path: `~/Documents/nipposan/{project-name}/daily/[DRAFT]YYYY-MM-DD.md` または `YYYY-MM-DD.md`
+  - `{project-name}`: Extract from current working directory (basename of the git repository root)
+- Create directory if needed
+- **処理時間を含む完全な日報コンテンツを1回のWriteツール呼び出しで書き込むこと**
+- 日報作成後にEditツールで処理時間を追記してはならない
+- **Do NOT output any confirmation message**
+
+### 7. Generate Tech Blog Drafts (if applicable)
+
+**IMPORTANT**: ブログドラフト生成は日報生成後に自動実行します。
+
+**Condition Check**:
+- 生成された日報から **発見 Lv.4-5** を抽出
+- 該当する発見がない場合はスキップ（処理終了）
+
+**For each Lv.4-5 discovery**:
+
+1. **Evaluate 5 elements (Lv.1-5 for each)**:
+   - **ハマりレベル**: 関連するハマりがあればそのレベルを使用。なければ「該当なし」
+   - **発見レベル**: すでに日報で評価済みの独自性レベルを使用
+   - **再現性・汎用性**: 他の状況・環境でも適用できるか（Lv.1-5で評価）
+   - **実践的価値**: 実際の開発で役立つか（Lv.1-5で評価）
+   - **教育的価値**: 初心者が学べる内容か（Lv.1-5で評価）
+   - **最新性**: 新しい技術・手法か（Lv.1-5で評価）
+
+2. **Calculate recommendation score**:
+   - **公開おすすめ度** = (再現性・汎用性 + 実践的価値 + 教育的価値 + 最新性 + 発見レベル) ÷ 5
+   - 小数点1位まで表示（例: 4.2）
+   - **閾値**: 公開おすすめ度 4.0以上の場合のみブログドラフト生成
+
+3. **Generate slug from title**:
+   - 発見のタイトル（日本語）を英語に翻訳
+   - 小文字に変換、スペースをハイフンに置換、記号を削除
+   - 例: 「Git履歴解析の落とし穴」→ `git-history-analysis-pitfalls`
+
+4. **Determine blog type**:
+   - 関連するハマりが「解決済み」の場合: トラブルシュート系
+   - その他（Tips、ノウハウ系の発見）: Tips・ノウハウ系
+   - `./blog-guidelines/` の該当する雛形ファイル（.txt）を参照
+
+5. **Generate draft content with metadata**:
+   - `./blog-guidelines/` のガイドラインファイル（.txt）を参照
+   - 以下の構造で生成:
+
+   ```markdown
+   <!--
+   メタデータ（公開時に削除してください）
+
+   ソース日報: YYYY-MM-DD.md
+   記事タイプ: トラブルシュート系 / Tips・ノウハウ系
+   公開おすすめ度: 4.2
+
+   評価内訳:
+   - ハマりレベル: Lv.4 / 該当なし - (関連する問題の難易度)
+   - 発見レベル: Lv.5 - (Web検索による独自性分析の結果)
+   - 再現性・汎用性: Lv.4 - [具体的な理由を記述]
+   - 実践的価値: Lv.4 - [具体的な理由を記述]
+   - 教育的価値: Lv.3 - [具体的な理由を記述]
+   - 最新性: Lv.5 - [具体的な理由を記述]
+   -->
+
+   # [タイトル]
+
+   ## はじめに
+   ### 技術背景
+   ### なぜ紹介するか
+
+   ## [本文セクション]
+   ...
+
+   ## まとめ
+   ```
+
+   - **Content**: ガイドラインに従った構造で生成
+     - トラブルシュート系: 背景説明 → トラブル概要 → 詳細な現象 → 原因切り分け → 解決策 → 確認結果 → まとめ
+     - Tips系: 技術背景 → なぜ紹介するか → Tipsの具体的内容 → 手順 → 効果やメリット → 注意点 → まとめ
+   - セッションから抽出した情報（エラーメッセージ、解決手順、コード例など）を活用
+   - ガイドラインの執筆ルールに従う（自然な文章、図の提案、オリジナリティなど）
+
+6. **Write draft file**:
+   - Path: `~/Documents/nipposan/{project-name}/tech-blog-drafts/YYYY-MM-DD-{slug}.md`
+   - Create directory if needed
+   - If file already exists with same name: append `-2`, `-3` etc.
+   - **Do NOT output any confirmation message**
+
+## Notes
+
+- This template does NOT output any messages to the user
+- Results are written directly to files
+- Designed to be called from `/adj:daily` and `/adj:all` via Task subagents

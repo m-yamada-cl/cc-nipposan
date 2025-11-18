@@ -1,0 +1,92 @@
+# Technical Blog Writing Guide
+
+## Purpose
+Guidelines for generating well-structured technical blog posts. Use this as a reference when creating daily reports or blog content.
+
+---
+
+## Writing Principles
+
+* **Audience-focused**: Write for readers who want to solve problems or learn something new
+* **Clear structure**: Use headings to organize content logically
+* **Concise**: Keep sentences short and focused
+* **Practical**: Include working examples and specific details
+* **Honest**: Share both successes and challenges
+
+---
+
+## Basic Article Structure
+
+### Introduction
+* Provide context for the topic
+* Explain why this matters to readers
+* State what the article will cover
+
+### Main Content
+* Break down information into logical sections
+* Use code examples, commands, or configurations
+* Include version numbers and environment details when relevant
+* Show step-by-step procedures where applicable
+
+### Conclusion
+* Summarize key points
+* Highlight main takeaways
+* Note any limitations or caveats
+
+---
+
+## Article Type Guidelines
+
+### Troubleshooting Articles
+
+**Introduction:**
+* Describe the situation when the problem occurred
+* Include exact error messages for searchability
+
+**Main Content:**
+* Reproduction steps and environment details
+* Investigation process (including failed attempts)
+* Root cause explanation
+* Solution with complete examples
+* Verification steps
+
+**Conclusion:**
+* Quick summary of the fix
+* Environment-specific warnings if applicable
+
+### Tips & How-To Articles
+
+**Introduction:**
+* Common pain points this tip addresses
+* Expected benefits (time saved, complexity reduced, etc.)
+
+**Main Content:**
+* The specific technique or approach
+* Step-by-step instructions
+* Working code/configuration examples
+* Before/after comparisons
+* Benefits and measurable improvements
+* Known limitations or version dependencies
+
+**Conclusion:**
+* Key takeaways in bullet points
+* Related topics or further reading
+
+---
+
+## Formatting Guidelines
+
+* Use markdown headings: # for title, ## for main sections, ### for subsections
+* Include code blocks with syntax highlighting where appropriate
+* Use bullet points for lists, but don't overuse them
+* Add whitespace between sections for readability
+
+---
+
+## Tips for AI-Generated Content
+
+* Be specific about the target audience and their level
+* Request concrete examples rather than abstract explanations
+* Ask for version numbers and environment details
+* Request both successful and unsuccessful approaches for troubleshooting
+* Specify the desired length and depth of coverage
